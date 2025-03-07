@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lost & Found</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        input, textarea, button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .item-list {
+            text-align: left;
+        }
+        .item {
+            background: #e3e3e3;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lost & Found Web App</h1>
+    <div class="container">
+        <h2>Report a Lost Item</h2>
+        <input type="text" id="lostName" placeholder="Item Name">
+        <textarea id="lostDescription" placeholder="Description"></textarea>
+        <button onclick="reportItem('lost')">Report Lost Item</button>
+        
+        <h2>Report a Found Item</h2>
+        <input type="text" id="foundName" placeholder="Item Name">
+        <textarea id="foundDescription" placeholder="Description"></textarea>
+        <button onclick="reportItem('found')">Report Found Item</button>
+    </div>
+    
+    <div class="container">
+        <h2>Lost Items</h2>
+        <div id="lostItems" class="item-list"></div>
+        
+        <h2>Found Items</h2>
+        <div id="foundItems" class="item-list"></div>
+    </div>
+    
+    <script>
+        const backendURL = "http://localhost:3000"; // Update this if deploying online
+    
+        function reportItem(type) {
+            const name = document.getElementById(type + 'Name').value;
+            const description = document.getElementById(type + 'Description').value;
+            const location = "Unknown"; // You can allow users to input location later
+    
+            if (!name || !description) {
+                alert('Please fill out all fields.');
+                return;
+            }
+    
+            const itemData = { name, description, location };
+    
+            fetch(`${backendURL}/report-${type}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(itemData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                fetchItems(); // Refresh the list
+            })
+            .catch(error => console.error("Error:", error));
+        }
+    
+        function fetchItems() {
+            fetch(`${backendURL}/get-items`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('lostItems').innerHTML = "";
+                document.getElementById('foundItems').innerHTML = "";
+    
+                data.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.classList.add('item');
+                    itemDiv.innerHTML = `<strong>${item.name}</strong><br>${item.description}<br><small>Location: ${item.location}</small>`;
+    
+                    if (item.type === 'lost') {
+                        document.getElementById('lostItems').appendChild(itemDiv);
+                    } else {
+                        document.getElementById('foundItems').appendChild(itemDiv);
+                    }
+                });
+            })
+            .catch(error => console.error("Error fetching items:", error));
+        }
+    
+        // Fetch items when the page loads
+        document.addEventListener("DOMContentLoaded", fetchItems);
+    </script>
+    
+</body>
+</html>
