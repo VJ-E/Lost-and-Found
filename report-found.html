@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Found Item</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+            background-color: #148bfb;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: rgb(206, 242, 255);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        input, textarea, button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .match-container {
+            margin-top: 20px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>Report a Found Item</h1>
+    <div class="container">
+        <input type="text" id="foundName" placeholder="Item Name">
+        <textarea id="foundDescription" placeholder="Description"></textarea>
+        <input type="text" id="foundLocation" placeholder="Location of Item">
+        <button onclick="reportItem()">Report Found Item</button>
+        <br><br>
+        <a href="index.html">Back to Home</a>
+    </div>
+
+    <div class="container match-container" id="matchContainer" style="display: none;">
+        <h2>Possible Matches</h2>
+        <div id="matchResults"></div>
+    </div>
+
+    <script>
+        const backendURL = "http://localhost:3000";
+
+        function reportItem() {
+            const name = document.getElementById('foundName').value;
+            const description = document.getElementById('foundDescription').value;
+            const location = document.getElementById('foundLocation').value;
+
+            if (!name || !description || !location) {
+                alert('Please fill out all fields.');
+                return;
+            }
+
+            const itemData = { name, description, location };
+
+            fetch(`${backendURL}/report-found`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(itemData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                findMatches(name, location);
+            })
+            .catch(error => console.error("Error:", error));
+        }
+
+        function findMatches(name, location) {
+            fetch(`${backendURL}/match-items`)
+            .then(response => response.json())
+            .then(matches => {
+                const matchContainer = document.getElementById("matchContainer");
+                const matchResults = document.getElementById("matchResults");
+                matchResults.innerHTML = "";
+
+                let foundMatch = false;
+
+                matches.forEach(match => {
+                    if (match.lost.name.toLowerCase() === name.toLowerCase() ||
+                        match.lost.location.toLowerCase() === location.toLowerCase()) {
+                        const itemDiv = document.createElement("div");
+                        itemDiv.innerHTML = `<strong>${match.lost.name}</strong><br>${match.lost.description}<br><small>Location: ${match.lost.location}</small>`;
+                        const notifyButton = document.createElement("button");
+                        notifyButton.innerText = "Notify Owner";
+                        notifyButton.onclick = () => alert("Notification sent to the owner!");
+
+                        itemDiv.appendChild(notifyButton);
+                        matchResults.appendChild(itemDiv);
+                        foundMatch = true;
+                    }
+                });
+
+                matchContainer.style.display = foundMatch ? "block" : "none";
+            })
+            .catch(error => console.error("Error fetching matches:", error));
+        }
+    </script>
+</body>
+</html>

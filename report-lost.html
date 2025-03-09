@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Lost Item</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            font-weight: bold;
+            text-align: left;
+            display: block;
+            margin-top: 10px;
+        }
+        input, textarea, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .submit-btn {
+            background: #007bff;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .submit-btn:hover {
+            background: #0056b3;
+        }
+        .loading {
+            display: none;
+            font-weight: bold;
+            margin-top: 10px;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Report a Lost Item</h1>
+    <div class="container">
+        <label for="lostName">Item Name</label>
+        <input type="text" id="lostName" placeholder="Enter the item name">
+
+        <label for="lostDescription">Description</label>
+        <textarea id="lostDescription" placeholder="Describe the item"></textarea>
+
+        <label for="lostLocation">Location</label>
+        <input type="text" id="lostLocation" placeholder="Where did you lose it?">
+
+        <button class="submit-btn" onclick="reportItem()">🔍 Report Lost Item</button>
+        
+        <p class="loading" id="loadingMessage">Checking for matches...</p>
+        
+        <br>
+        <a href="index.html">⬅ Back to Home</a>
+    </div>
+
+    <div class="container" id="matchContainer" style="display: none;">
+        <h2>Possible Matches</h2>
+        <div id="matchResults"></div>
+    </div>
+
+    <script>
+        const backendURL = "http://localhost:3000";
+
+        function reportItem() {
+            const name = document.getElementById('lostName').value;
+            const description = document.getElementById('lostDescription').value;
+            const location = document.getElementById('lostLocation').value;
+
+            if (!name || !description || !location) {
+                alert('Please fill out all fields.');
+                return;
+            }
+
+            document.getElementById("loadingMessage").style.display = "block";
+
+            const itemData = { name, description, location };
+
+            fetch(`${backendURL}/report-lost`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(itemData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                document.getElementById("loadingMessage").style.display = "none";
+                findMatches(name, location);
+            })
+            .catch(error => console.error("Error:", error));
+        }
+
+        function findMatches(name, location) {
+            fetch(`${backendURL}/match-items`)
+            .then(response => response.json())
+            .then(matches => {
+                const matchContainer = document.getElementById("matchContainer");
+                const matchResults = document.getElementById("matchResults");
+                matchResults.innerHTML = "";
+                matchContainer.style.display = "none";
+
+                matches.forEach(match => {
+                    if (match.found.name.toLowerCase() === name.toLowerCase() ||
+                        match.found.location.toLowerCase() === location.toLowerCase()) {
+                        matchContainer.style.display = "block";
+                        const itemDiv = document.createElement("div");
+                        itemDiv.innerHTML = `<strong>${match.found.name}</strong><br>${match.found.description}<br><small>📍 ${match.found.location}</small>`;
+                        matchResults.appendChild(itemDiv);
+                    }
+                });
+            })
+            .catch(error => console.error("Error fetching matches:", error));
+        }
+    </script>
+</body>
+</html>
