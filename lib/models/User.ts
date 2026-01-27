@@ -44,22 +44,28 @@ const UserSchema = new Schema<IUser>(
   }
 );
 
-UserSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+UserSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
 
   try {
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
-    next();
   } catch (error) {
-    next(error as Error);
+    throw error;
   }
 });
 
 UserSchema.methods.comparePassword = async function (
   candidatePassword: string
 ): Promise<boolean> {
-  return bcrypt.compare(candidatePassword, this.password);
+  try {
+    const UserModel = mongoose.model('User');
+    const user = await UserModel.findById(this._id).select('+password');
+    if (!user) return false;
+    return bcrypt.compare(candidatePassword, user.password);
+  } catch (error) {
+    return false;
+  }
 };
 
 export const User = models.User || model<IUser>("User", UserSchema);
