@@ -4,6 +4,8 @@ import { ItemFilters } from "@/components/items/item-filters";
 import { ItemCard } from "@/components/items/item-card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Package } from "lucide-react";
+import { connectToDatabase } from "@/lib/mongodb";
+import { Item } from "@/lib/models/Item";
 import Link from "next/link";
 
 interface SearchParams {
@@ -15,30 +17,76 @@ interface SearchParams {
 }
 
 async function getItems(searchParams: SearchParams) {
-  const params = new URLSearchParams();
-
-  if (searchParams.type) params.set("type", searchParams.type);
-  if (searchParams.category) params.set("category", searchParams.category);
-  if (searchParams.status) params.set("status", searchParams.status);
-  if (searchParams.search) params.set("search", searchParams.search);
-  params.set("page", searchParams.page || "1");
-  params.set("limit", "12");
-
-  const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}` 
-    : "http://localhost:3000";
-
   try {
-    const response = await fetch(`${baseUrl}/api/items?${params.toString()}`, {
-      cache: "no-store",
-    });
+    await connectToDatabase();
+    
+    const type = searchParams.type;
+    const category = searchParams.category;
+    const status = searchParams.status;
+    const search = searchParams.search;
+    const page = parseInt(searchParams.page || "1");
+    const limit = 12;
 
-    if (!response.ok) {
-      return { items: [], pagination: { page: 1, pages: 1, total: 0 } };
+    const query: Record<string, unknown> = {};
+
+    if (type && type !== "all") {
+      query.type = type;
     }
 
-    return response.json();
-  } catch {
+    if (category && category !== "all") {
+      query.category = category;
+    }
+
+    if (status && status !== "all") {
+      query.status = status;
+    } else {
+      query.status = { $in: ["open", "claimed"] };
+    }
+
+    if (search) {
+      query.$text = { $search: search };
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      Item.find(query)
+        .populate("reportedBy", "name email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Item.countDocuments(query),
+    ]);
+
+    // Convert MongoDB documents to plain objects and stringify ObjectIds
+    const serializedItems = items.map(item => ({
+      ...item,
+      _id: item._id.toString(),
+      reportedBy: item.reportedBy ? {
+        ...item.reportedBy,
+        _id: item.reportedBy._id.toString()
+      } : null,
+      claimedBy: item.claimedBy ? {
+        ...item.claimedBy,
+        _id: item.claimedBy._id.toString()
+      } : null,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+      date: item.date.toISOString(),
+    }));
+
+    return {
+      items: serializedItems,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching items:", error);
     return { items: [], pagination: { page: 1, pages: 1, total: 0 } };
   }
 }

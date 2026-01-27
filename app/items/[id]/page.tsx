@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { connectToDatabase } from "@/lib/mongodb";
+import { Item } from "@/lib/models/Item";
 import { Header } from "@/components/layout/header";
 import { ClaimForm } from "@/components/claims/claim-form";
 import { Badge } from "@/components/ui/badge";
@@ -11,22 +13,17 @@ import { format } from "date-fns";
 import Link from "next/link";
 
 async function getItem(id: string) {
-  const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}` 
-    : "http://localhost:3000";
-
   try {
-    const response = await fetch(`${baseUrl}/api/items/${id}`, {
-      cache: "no-store",
-    });
+    await connectToDatabase();
+    
+    const item = await Item.findById(id)
+      .populate("reportedBy", "name email")
+      .populate("claimedBy", "name email")
+      .lean();
 
-    if (!response.ok) {
-      return null;
-    }
-
-    const data = await response.json();
-    return data.item;
-  } catch {
+    return item;
+  } catch (error) {
+    console.error('Error fetching item:', error);
     return null;
   }
 }
@@ -166,12 +163,12 @@ export default async function ItemDetailPage({
                   </div>
                 ) : canClaim ? (
                   <ClaimForm
-                    itemId={item._id}
+                    itemId={item._id.toString()}
                     itemTitle={item.title}
                     itemType={item.type}
                   />
                 ) : !session ? (
-                  <Link href={`/auth/signin?callbackUrl=/items/${item._id}`} className="block">
+                  <Link href={`/auth/signin?callbackUrl=/items/${item._id.toString()}`} className="block">
                     <Button className="w-full">Sign in to claim</Button>
                   </Link>
                 ) : isOwner ? (
@@ -185,7 +182,7 @@ export default async function ItemDetailPage({
                 )}
 
                 {(isOwner || isAdmin) && (
-                  <Link href={`/items/${item._id}/edit`}>
+                  <Link href={`/items/${item._id.toString()}/edit`}>
                     <Button variant="outline" className="w-full gap-2 bg-transparent">
                       <Edit className="h-4 w-4" />
                       Edit Item
