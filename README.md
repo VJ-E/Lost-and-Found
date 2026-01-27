@@ -2,11 +2,11 @@
 
 [![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/) [![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactjs.org/) [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/) [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/) [![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com/) [![NextAuth.js](https://img.shields.io/badge/NextAuth.js-000000?style=flat-square&logo=next.js&logoColor=white)](https://next-auth.js.org/)
 
-A comprehensive web application for managing lost and found items on campus. Built with modern web technologies to provide an efficient and user-friendly platform for reconnecting lost items with their owners.
+A web application for managing lost and found items on campus. Built with modern web technologies to provide an efficient and user-friendly platform for reconnecting lost items with their owners.
 
 ## Overview
 
-CampusFind streamlines the lost and found process by providing a centralized platform where users can report lost items, submit found items, search for belongings, and manage claims through an intuitive interface. The system includes role-based access control, allowing both regular users and administrators to manage the lost and found ecosystem effectively.
+LostAndFound streamlines the lost and found process by providing a centralized platform where users can report lost items, submit found items, search for belongings, and manage claims through an intuitive interface. The system includes role-based access control, allowing both regular users and administrators to manage the lost and found ecosystem effectively.
 
 ## Technology Stack
 
