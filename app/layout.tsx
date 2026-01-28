@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SessionProvider } from "@/components/providers/session-provider";
 import "./globals.css";
+import ClickSpark from "@/components/ui/click-spark";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
   description:
     "Report lost items, find what others have found, and reunite with your belongings on campus.",
   keywords: ["lost and found", "campus", "university", "items", "search"],
-    generator: 'v0.app'
+  generator: 'v0.app'
 };
 
 export const viewport: Viewport = {
@@ -29,7 +30,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased`}>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <ClickSpark
+            sparkColor="#fff"
+            sparkSize={10}
+            sparkRadius={15}
+            sparkCount={8}
+            duration={400}
+          >
+            {children}
+          </ClickSpark>
+        </SessionProvider>
         <Analytics />
       </body>
     </html>
