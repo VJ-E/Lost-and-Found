@@ -77,6 +77,12 @@ async function getItems(searchParams: SearchParams) {
       createdAt: item.createdAt.toISOString(),
       updatedAt: item.updatedAt.toISOString(),
       date: item.date.toISOString(),
+      // Convert Buffer to base64 string for client-side consumption
+      imageData: item.imageData ? {
+        data: item.imageData.data.toString('base64'),
+        contentType: item.imageData.contentType,
+        size: item.imageData.size,
+      } : null,
     }));
 
     return {

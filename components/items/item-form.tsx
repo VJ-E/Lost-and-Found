@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, X } from "lucide-react";
 
 const categories = [
   "Electronics",
@@ -43,6 +43,11 @@ interface ItemFormProps {
     location?: string;
     date?: string;
     imageUrl?: string;
+    imageData?: {
+      data: string;
+      contentType: string;
+      size: number;
+    };
     contactInfo?: string;
   };
 }
@@ -53,6 +58,8 @@ export function ItemForm({ mode = "create", initialData }: ItemFormProps) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageError, setImageError] = useState("");
 
   const [formData, setFormData] = useState({
     title: initialData?.title || "",
@@ -62,8 +69,43 @@ export function ItemForm({ mode = "create", initialData }: ItemFormProps) {
     location: initialData?.location || "",
     date: initialData?.date?.split("T")[0] || new Date().toISOString().split("T")[0],
     imageUrl: initialData?.imageUrl || "",
+    imageData: initialData?.imageData || null,
+    imagePreview: initialData?.imageData ? `data:${initialData.imageData.contentType};base64,${initialData.imageData.data}` : "",
     contactInfo: initialData?.contactInfo || session?.user?.email || "",
   });
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setImageError('Please select an image file');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError('Image size must be less than 5MB');
+      return;
+    }
+
+    setImageError("");
+    setImageFile(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setFormData({ ...formData, imagePreview: event.target?.result as string });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setFormData({ ...formData, imagePreview: "", imageData: null });
+    setImageError("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,13 +113,33 @@ export function ItemForm({ mode = "create", initialData }: ItemFormProps) {
     setError("");
 
     try {
+      const formDataToSend = new FormData();
+      
+      // Append all form fields
+      formDataToSend.append('title', formData.title);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('category', formData.category);
+      formDataToSend.append('type', formData.type);
+      formDataToSend.append('location', formData.location);
+      formDataToSend.append('date', formData.date);
+      formDataToSend.append('contactInfo', formData.contactInfo);
+      
+      // Append image if exists
+      if (imageFile) {
+        formDataToSend.append('image', imageFile);
+      }
+      
+      // For edit mode, handle image removal
+      if (mode === "edit" && !imageFile && !formData.imagePreview && initialData?.imageData) {
+        formDataToSend.append('removeImage', 'true');
+      }
+
       const url = mode === "edit" ? `/api/items/${initialData?._id}` : "/api/items";
       const method = mode === "edit" ? "PATCH" : "POST";
 
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: formDataToSend,
       });
 
       const data = await response.json();
@@ -206,21 +268,55 @@ export function ItemForm({ mode = "create", initialData }: ItemFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="imageUrl">Image URL (optional)</Label>
-            <div className="flex gap-2">
-              <Input
-                id="imageUrl"
-                placeholder="https://example.com/image.jpg"
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-              />
-              <Button type="button" variant="outline" size="icon" disabled>
-                <Upload className="h-4 w-4" />
-              </Button>
+            <Label>Image</Label>
+            <div className="space-y-3">
+              {formData.imagePreview ? (
+                <div className="relative">
+                  <img 
+                    src={formData.imagePreview} 
+                    alt="Preview" 
+                    className="w-full h-48 object-cover rounded-lg border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2"
+                    onClick={removeImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+                  <div className="text-center">
+                    <Upload className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                    <div className="mt-4">
+                      <label htmlFor="image-upload" className="cursor-pointer">
+                        <span className="mt-2 block text-sm font-medium text-foreground">
+                          Click to upload image
+                        </span>
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          PNG, JPG, GIF up to 5MB
+                        </span>
+                      </label>
+                      <input
+                        id="image-upload"
+                        type="file"
+                        className="sr-only"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {imageError && (
+                <div className="text-sm text-destructive">
+                  {imageError}
+                </div>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Paste a direct link to an image of the item
-            </p>
           </div>
 
           <div className="space-y-2">

@@ -21,7 +21,30 @@ async function getItem(id: string) {
       .populate("claimedBy", "name email")
       .lean();
 
-    return item;
+    if (!item) return null;
+
+    // Convert MongoDB document to plain object and handle Buffer serialization
+    return {
+      ...item,
+      _id: item._id.toString(),
+      reportedBy: item.reportedBy ? {
+        ...item.reportedBy,
+        _id: item.reportedBy._id.toString()
+      } : null,
+      claimedBy: item.claimedBy ? {
+        ...item.claimedBy,
+        _id: item.claimedBy._id.toString()
+      } : null,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+      date: item.date.toISOString(),
+      // Convert Buffer to base64 string for client-side consumption
+      imageData: item.imageData ? {
+        data: item.imageData.data.toString('base64'),
+        contentType: item.imageData.contentType,
+        size: item.imageData.size,
+      } : null,
+    };
   } catch (error) {
     console.error('Error fetching item:', error);
     return null;
@@ -73,9 +96,12 @@ export default async function ItemDetailPage({
           <div className="lg:col-span-2">
             <div className="overflow-hidden rounded-lg border border-border bg-card">
               <div className="relative aspect-video bg-muted">
-                {item.imageUrl ? (
+                {(item.imageUrl || item.imageData) ? (
                   <img
-                    src={item.imageUrl || "/placeholder.svg"}
+                    src={
+                      item.imageUrl || 
+                      (item.imageData ? `data:${item.imageData.contentType};base64,${item.imageData.data}` : "/placeholder.svg")
+                    }
                     alt={item.title}
                     className="h-full w-full object-cover"
                   />

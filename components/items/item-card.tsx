@@ -17,6 +17,11 @@ interface ItemCardProps {
     location: string;
     date: string;
     imageUrl?: string;
+    imageData?: {
+      data: string;
+      contentType: string;
+      size: number;
+    };
     createdAt: string;
   };
 }
@@ -37,9 +42,12 @@ export function ItemCard({ item }: ItemCardProps) {
     <Link href={`/items/${item._id}`}>
       <Card className="group h-full overflow-hidden transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
         <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-          {item.imageUrl ? (
+          {(item.imageUrl || item.imageData) ? (
             <img
-              src={item.imageUrl || "/placeholder.svg"}
+              src={
+                item.imageUrl || 
+                (item.imageData ? `data:${item.imageData.contentType};base64,${item.imageData.data}` : "/placeholder.svg")
+              }
               alt={item.title}
               className="h-full w-full object-cover transition-transform group-hover:scale-105"
             />

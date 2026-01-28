@@ -9,7 +9,11 @@ export interface IItem extends Document {
   status: "open" | "claimed" | "resolved";
   location: string;
   date: Date;
-  imageUrl?: string;
+  imageData?: {
+    data: Buffer;
+    contentType: string;
+    size: number;
+  };
   contactInfo: string;
   reportedBy: mongoose.Types.ObjectId;
   claimedBy?: mongoose.Types.ObjectId;
@@ -66,9 +70,10 @@ const ItemSchema = new Schema<IItem>(
       type: Date,
       required: [true, "Date is required"],
     },
-    imageUrl: {
-      type: String,
-      trim: true,
+    imageData: {
+      data: Buffer,
+      contentType: String,
+      size: Number,
     },
     contactInfo: {
       type: String,
