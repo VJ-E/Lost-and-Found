@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 const categories = [
   "All Categories",
@@ -32,7 +32,15 @@ export function ItemFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [search, setSearch] = useState(() => searchParams.get("search") || "");
+
+  // Update search state when URL params change
+  useEffect(() => {
+    const currentSearch = searchParams.get("search") || "";
+    if (currentSearch !== search) {
+      setSearch(currentSearch);
+    }
+  }, [searchParams, search]);
 
   const currentType = searchParams.get("type") || "all";
   const currentCategory = searchParams.get("category") || "all";
@@ -40,16 +48,22 @@ export function ItemFilters() {
 
   const updateFilters = useCallback(
     (key: string, value: string) => {
+      console.log(`updateFilters called with key: ${key}, value: ${value}`);
       const params = new URLSearchParams(searchParams.toString());
       if (value === "all" || value === "All Categories") {
+        console.log("Deleting param:", key);
         params.delete(key);
       } else {
+        console.log("Setting param:", key, value);
         params.set(key, value);
       }
       params.delete("page");
-      router.push(`/items?${params.toString()}`);
+      const newUrl = `/items?${params.toString()}`;
+      console.log("Pushing new URL:", newUrl);
+      router.push(newUrl);
     },
     [router, searchParams]
+
   );
 
   const handleSearch = (e: React.FormEvent) => {
@@ -66,7 +80,14 @@ export function ItemFilters() {
     currentType !== "all" ||
     currentCategory !== "all" ||
     currentStatus !== "all" ||
-    search;
+    search.trim() !== "";
+
+  const activeFiltersCount = [
+    currentType !== "all",
+    currentCategory !== "all",
+    currentStatus !== "all",
+    search.trim() !== ""
+  ].filter(Boolean).length;
 
   return (
     <div className="space-y-4">
@@ -135,7 +156,7 @@ export function ItemFilters() {
         {hasFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-2">
             <X className="h-4 w-4" />
-            Clear Filters
+            Clear Filters {activeFiltersCount > 0 && `(${activeFiltersCount})`}
           </Button>
         )}
       </div>

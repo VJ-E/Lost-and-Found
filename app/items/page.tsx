@@ -19,7 +19,7 @@ interface SearchParams {
 async function getItems(searchParams: SearchParams) {
   try {
     await connectToDatabase();
-    
+
     const type = searchParams.type;
     const category = searchParams.category;
     const status = searchParams.status;
@@ -33,15 +33,18 @@ async function getItems(searchParams: SearchParams) {
       query.type = type;
     }
 
-    if (category && category !== "all") {
-      query.category = category;
+    if (category && category !== "all" && category !== "All Categories") {
+      // Use regex for case-insensitive matching
+      query.category = { $regex: new RegExp(`^${category}$`, "i") };
     }
 
     if (status && status !== "all") {
       query.status = status;
-    } else {
+    } else if (!status) {
+      // Only filter by status if no status is specified (default view)
       query.status = { $in: ["open", "claimed"] };
     }
+    // If status === "all", don't filter by status at all (show all items)
 
     if (search) {
       query.$text = { $search: search };
